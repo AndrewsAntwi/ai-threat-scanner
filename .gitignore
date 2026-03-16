@@ -1,0 +1,19 @@
+# Environment — never commit keys
+.env
+
+# Backend data (contains API keys in settings.json)
+backend/data/
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+frontend/node_modules/
+frontend/build/
+
+# OS
+.DS_Store
+Thumbs.db

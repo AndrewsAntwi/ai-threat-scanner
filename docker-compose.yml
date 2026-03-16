@@ -1,0 +1,60 @@
+version: "3.9"
+
+# ── AI Threat Scanner — docker-compose ──────────────────────────────────────
+# Quick start:
+#   cp .env.example .env           # add your OPENAI_API_KEY
+#   docker compose up --build -d
+#   open http://localhost:3000
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-threat-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}        # fallback; prefer Settings UI
+      - DATA_DIR=/app/data
+    volumes:
+      - scanner_data:/app/data                    # persistent JSON storage
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - scanner_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://localhost:8000/api
+    container_name: ai-threat-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - scanner_net
+
+volumes:
+  scanner_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./backend/data}    # bind-mount for easy backup
+
+networks:
+  scanner_net:
+    driver: bridge
